@@ -14,7 +14,7 @@ def curve_length(graph, source):
                     queue.append(neighbour)
         explored.add(node)
     score = max(len(explored) - 1, 2)
-    # print score
+    #print score
     return score
 
 def curve_heuristic(graph, i, j):
@@ -54,7 +54,6 @@ def print_graph(graph,title):
     plt.show()
 
 
-
 # I/O
 filename = 'input_images/smw_boo_input.png'
 img = Image.open(filename)
@@ -67,8 +66,7 @@ similarity_graph = nx.Graph()
 #Add nodes
 for i in range(img.width):
     for j in range(img.height):
-        similarity_graph.add_node((i, j), pixel_value=pixels[i, j])
-        print pixels[i,j]
+        similarity_graph.add_node((i, j), pixel_value=pixels[j, i])
 
 #Add edges
 #TODO check channels, range, other error possibilities
@@ -95,9 +93,7 @@ for i in range(img.width):
                 if (y_diff <= y_threshold) and (u_diff <= u_threshold) and (v_diff <= v_threshold):
                     similarity_graph.add_edge(current_node, neighbour_node)
 
-
-
-print_graph(similarity_graph,"before removing")
+#print_graph(similarity_graph, "before removing")
 
 #Remove diagonals from fully-connected blocks
 for i in range(img.width - 1):
@@ -112,7 +108,6 @@ for i in range(img.width - 1):
             if (len(edges) == 6):
                 similarity_graph.remove_edge((i, j), (i + 1, j + 1))
                 similarity_graph.remove_edge((i + 1, j), (i, j + 1))
-                #print 'Here'
             elif (len(edges) == 2):
                 similarity_graph[(i, j)][(i + 1, j + 1)]['score'] = 0
                 similarity_graph[(i + 1, j)][(i, j + 1)]['score'] = 0
@@ -128,5 +123,6 @@ for i in range(img.width - 1):
             else:
                 "Error! Block has abnormal number of edges"
 
+#print_graph(similarity_graph, "after removing")
 
-print_graph(similarity_graph,"after removing")
+
