@@ -46,6 +46,7 @@ def island_heuristic(graph, i, j):
 
 def print_graph(graph,title):
     plt.figure()
+    plt.title(title)
     x = [node[0] for node in similarity_graph.nodes()]
     y = [node[1] for node in similarity_graph.nodes()]
     plt.scatter(x,y)
