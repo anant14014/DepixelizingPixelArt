@@ -1,5 +1,6 @@
 import networkx as nx
 from PIL import Image
+import matplotlib.pyplot as plt
 
 def curve_length(graph, source):
     queue = []
@@ -13,7 +14,7 @@ def curve_length(graph, source):
                     queue.append(neighbour)
         explored.add(node)
     score = max(len(explored) - 1, 2)
-    print score
+    # print score
     return score
 
 def curve_heuristic(graph, i, j):
@@ -43,6 +44,17 @@ def island_heuristic(graph, i, j):
     if nx.degree(graph, (i + 1, j)) == 1 or nx.degree(graph, (i, j + 1)) == 1:
         graph[(i + 1, j)][(i, j + 1)]['score'] = graph[(i + 1, j)][(i, j + 1)]['score'] + score
 
+def print_graph(graph,title):
+    plt.figure()
+    x = [node[0] for node in similarity_graph.nodes()]
+    y = [node[1] for node in similarity_graph.nodes()]
+    plt.scatter(x,y)
+    for edge in similarity_graph.edges():
+        plt.plot([edge[0][0],edge[1][0]],[edge[0][1],edge[1][1]])
+    plt.show()
+
+
+
 # I/O
 filename = 'input_images/smw_boo_input.png'
 img = Image.open(filename)
@@ -56,6 +68,7 @@ similarity_graph = nx.Graph()
 for i in range(img.width):
     for j in range(img.height):
         similarity_graph.add_node((i, j), pixel_value=pixels[i, j])
+        print pixels[i,j]
 
 #Add edges
 #TODO check channels, range, other error possibilities
@@ -81,6 +94,10 @@ for i in range(img.width):
                 v_diff = abs(similarity_graph.nodes[current_node]['pixel_value'][2] - similarity_graph.nodes[neighbour_node]['pixel_value'][2])
                 if (y_diff <= y_threshold) and (u_diff <= u_threshold) and (v_diff <= v_threshold):
                     similarity_graph.add_edge(current_node, neighbour_node)
+
+
+
+print_graph(similarity_graph,"before removing")
 
 #Remove diagonals from fully-connected blocks
 for i in range(img.width - 1):
@@ -111,3 +128,5 @@ for i in range(img.width - 1):
             else:
                 "Error! Block has abnormal number of edges"
 
+
+print_graph(similarity_graph,"after removing")
