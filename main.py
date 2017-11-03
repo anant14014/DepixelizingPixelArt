@@ -126,3 +126,28 @@ for i in range(img.width - 1):
 #print_graph(similarity_graph, "after removing")
 
 
+# voronoi cells
+for x in range(img.width):
+    for y in range(img.height):
+
+        voronoi_cell_center_x = x + 0.5
+        voronoi_cell_center_y = y + 0.5
+
+        similarity_graph.nodes[(x, y)]['voronoi_cell_center'] = (voronoi_cell_center_x, voronoi_cell_center_y)
+
+        voronoi_cell_vertices = []
+
+        # top left
+        if similarity_graph.has_edge((x, y), (x-1, y-1)):
+            voronoi_cell_vertices.append((voronoi_cell_center_x - 0.25, voronoi_cell_center_y - 0.75))
+            voronoi_cell_vertices.append((voronoi_cell_center_x - 0.75, voronoi_cell_center_y - 0.25))
+        elif similarity_graph.has_edge((x, y - 1), (x - 1, y)):
+            voronoi_cell_vertices.append((voronoi_cell_center_x - 0.25, voronoi_cell_center_y - 0.25))
+        else:
+            voronoi_cell_vertices.append((voronoi_cell_center_x - 0.5, voronoi_cell_center_y - 0.5))
+
+        # top
+        voronoi_cell_vertices.append((voronoi_cell_center_x, voronoi_cell_center_y - 0.5))
+
+
+        similarity_graph.nodes[(x, y)]['voronoi_cell_vertices'] = voronoi_cell_vertices
