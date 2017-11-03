@@ -46,11 +46,12 @@ def island_heuristic(graph, i, j):
 
 def print_graph(graph,title):
     plt.figure()
-    x = [node[0] for node in similarity_graph.nodes()]
+    plt.title(title)
+    x = [-node[0] for node in similarity_graph.nodes()]
     y = [node[1] for node in similarity_graph.nodes()]
-    plt.scatter(x,y)
+    plt.scatter(y,x)
     for edge in similarity_graph.edges():
-        plt.plot([edge[0][0],edge[1][0]],[edge[0][1],edge[1][1]])
+        plt.plot([edge[0][1],edge[1][1]],[-edge[0][0],-edge[1][0]])
     plt.show()
 
 
@@ -123,8 +124,7 @@ for i in range(img.width - 1):
             else:
                 "Error! Block has abnormal number of edges"
 
-#print_graph(similarity_graph, "after removing")
-
+# print_graph(similarity_graph, "after removing")
 
 # voronoi cells
 for x in range(img.width):
