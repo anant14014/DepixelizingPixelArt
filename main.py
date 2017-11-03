@@ -94,7 +94,7 @@ for i in range(img.width):
                 if (y_diff <= y_threshold) and (u_diff <= u_threshold) and (v_diff <= v_threshold):
                     similarity_graph.add_edge(current_node, neighbour_node)
 
-#print_graph(similarity_graph, "before removing")
+print_graph(similarity_graph, "before removing")
 
 #Remove diagonals from fully-connected blocks
 for i in range(img.width - 1):
@@ -124,7 +124,7 @@ for i in range(img.width - 1):
             else:
                 "Error! Block has abnormal number of edges"
 
-# print_graph(similarity_graph, "after removing")
+print_graph(similarity_graph, "after removing")
 
 # voronoi cells
 for x in range(img.width):
@@ -138,7 +138,7 @@ for x in range(img.width):
         voronoi_cell_vertices = []
 
         # top left
-        if similarity_graph.has_edge((x, y), (x-1, y-1)):
+        if similarity_graph.has_edge((x, y), (x - 1, y - 1)):
             voronoi_cell_vertices.append((voronoi_cell_center_x - 0.25, voronoi_cell_center_y - 0.75))
             voronoi_cell_vertices.append((voronoi_cell_center_x - 0.75, voronoi_cell_center_y - 0.25))
         elif similarity_graph.has_edge((x, y - 1), (x - 1, y)):
@@ -149,5 +149,41 @@ for x in range(img.width):
         # top
         voronoi_cell_vertices.append((voronoi_cell_center_x, voronoi_cell_center_y - 0.5))
 
+        # top right
+        if similarity_graph.has_edge((x, y), (x + 1, y - 1)):
+            voronoi_cell_vertices.append((voronoi_cell_center_x + 0.25, voronoi_cell_center_y - 0.75))
+            voronoi_cell_vertices.append((voronoi_cell_center_x + 0.75, voronoi_cell_center_y - 0.25))
+        elif similarity_graph.has_edge((x, y - 1), (x + 1, y)):
+            voronoi_cell_vertices.append((voronoi_cell_center_x + 0.25, voronoi_cell_center_y - 0.25))
+        else:
+            voronoi_cell_vertices.append((voronoi_cell_center_x + 0.5, voronoi_cell_center_y - 0.5))
+
+        # right
+        voronoi_cell_vertices.append((voronoi_cell_center_x + 0.5, voronoi_cell_center_y))
+
+        # bottom right
+        if similarity_graph.has_edge((x, y), (x + 1, y + 1)):
+            voronoi_cell_vertices.append((voronoi_cell_center_x + 0.25, voronoi_cell_center_y + 0.75))
+            voronoi_cell_vertices.append((voronoi_cell_center_x + 0.75, voronoi_cell_center_y + 0.25))
+        elif similarity_graph.has_edge((x, y + 1), (x + 1, y)):
+            voronoi_cell_vertices.append((voronoi_cell_center_x + 0.25, voronoi_cell_center_y + 0.25))
+        else:
+            voronoi_cell_vertices.append((voronoi_cell_center_x + 0.5, voronoi_cell_center_y + 0.5))
+
+        # bottom
+        voronoi_cell_vertices.append((voronoi_cell_center_x, voronoi_cell_center_y + 0.5))
+
+        # bottom left
+        if similarity_graph.has_edge((x, y), (x - 1, y + 1)):
+            voronoi_cell_vertices.append((voronoi_cell_center_x - 0.25, voronoi_cell_center_y + 0.75))
+            voronoi_cell_vertices.append((voronoi_cell_center_x - 0.75, voronoi_cell_center_y + 0.25))
+        elif similarity_graph.has_edge((x, y + 1), (x - 1, y)):
+            voronoi_cell_vertices.append((voronoi_cell_center_x - 0.25, voronoi_cell_center_y + 0.25))
+        else:
+            voronoi_cell_vertices.append((voronoi_cell_center_x - 0.5, voronoi_cell_center_y + 0.5))
+
+        # left
+        voronoi_cell_vertices.append((voronoi_cell_center_x - 0.5, voronoi_cell_center_y))
 
         similarity_graph.nodes[(x, y)]['voronoi_cell_vertices'] = voronoi_cell_vertices
+
