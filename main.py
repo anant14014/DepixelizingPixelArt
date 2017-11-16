@@ -1,6 +1,7 @@
 import networkx as nx
 from PIL import Image
 import matplotlib.pyplot as plt
+import pygame
 
 def curve_length(graph, source):
     queue = []
@@ -44,7 +45,7 @@ def island_heuristic(graph, i, j):
     if nx.degree(graph, (i + 1, j)) == 1 or nx.degree(graph, (i, j + 1)) == 1:
         graph[(i + 1, j)][(i, j + 1)]['score'] = graph[(i + 1, j)][(i, j + 1)]['score'] + score
 
-def print_graph(graph,title):
+def print_graph(graph, title):
     plt.figure()
     plt.title(title)
     x = [-node[0] for node in similarity_graph.nodes()]
@@ -54,6 +55,56 @@ def print_graph(graph,title):
         plt.plot([edge[0][1],edge[1][1]],[-edge[0][0],-edge[1][0]])
     plt.show()
 
+def draw_voronoi(graph, width, height, scale):
+    pygame.init()
+
+    # Define some colors
+    BLACK = (0, 0, 0)
+    WHITE = (255, 255, 255)
+    BLUE = (0, 0, 255)
+    GREEN = (0, 255, 0)
+    RED = (255, 0, 0)
+
+    size = (width*scale, height*scale)
+    screen = pygame.display.set_mode(size)
+
+    pygame.display.set_caption("Voronoi Diagram")
+
+    # Loop until the user clicks the close button.
+    done = False
+    clock = pygame.time.Clock()
+
+    while not done:
+
+        for event in pygame.event.get():  # User did something
+            if event.type == pygame.QUIT:  # If user clicked close
+                done = True  # Flag that we are done so we exit this loop
+
+        # All drawing code happens after the for loop and but
+        # inside the main while not done loop.
+
+        # Clear the screen and set the screen background
+        screen.fill(WHITE)
+
+        for i in range(width):
+            for j in range(height):
+                voronoi_cell_vertices = graph.nodes[(i, j)]['voronoi_cell_vertices']
+                vertices = []
+                for vertex in voronoi_cell_vertices:
+                    vertices.append([vertex[0]*scale, vertex[1]*scale])
+                color = graph.nodes[(i, j)]['pixel_value']
+                pygame.draw.polygon(screen, color, vertices)
+
+        # Go ahead and update the screen with what we've drawn.
+        # This MUST happen after all the other drawing commands.
+        pygame.display.flip()
+
+        # This limits the while loop to a max of 60 times per second.
+        # Leave this out and we will use all CPU we can.
+        clock.tick(60)
+
+    # Be IDLE friendly
+    pygame.quit()
 
 # I/O
 filename = 'input_images/smw_boo_input.png'
@@ -186,4 +237,33 @@ for x in range(img.width):
         voronoi_cell_vertices.append((voronoi_cell_center_x - 0.5, voronoi_cell_center_y))
 
         similarity_graph.nodes[(x, y)]['voronoi_cell_vertices'] = voronoi_cell_vertices
+        #print voronoi_cell_vertices
 
+scale = 30
+#draw_voronoi(similarity_graph, img.width, img.height, scale)
+
+# calculate valencies of voronoi cell vertices
+valency = {}
+for i in range(img.width):
+    for j in range(img.height):
+        voronoi_cell_vertices = similarity_graph.nodes[(i, j)]['voronoi_cell_vertices']
+        for vertex in voronoi_cell_vertices:
+            if vertex in valency:
+                valency[vertex] = valency[vertex] + 1
+            else:
+                valency[vertex] = 1
+
+# remove valency-2 voronoi points
+for i in range(img.width):
+    for j in range(img.height):
+        voronoi_cell_vertices = similarity_graph.nodes[(i, j)]['voronoi_cell_vertices']
+        for vertex in voronoi_cell_vertices:
+            x = vertex[0]
+            y = vertex[1]
+            if valency[vertex] == 1:
+                print "WRONG!"
+            if x != 0 and x != img.width and y != 0 and y != img.height:
+                if valency[vertex] == 2:
+                    voronoi_cell_vertices.remove(vertex)
+
+#draw_voronoi(similarity_graph, img.width, img.height, scale)
