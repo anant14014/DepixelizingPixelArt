@@ -1,110 +1,8 @@
 import networkx as nx
 from PIL import Image
-import matplotlib.pyplot as plt
-import pygame
+import heuristics
+import visualizations
 
-def curve_length(graph, source):
-    queue = []
-    explored = set([])
-    queue.append(source)
-    while (len(queue) > 0):
-        node = queue.pop(0)
-        if nx.degree(graph, node) == 2:
-            for neighbour in graph[node]:
-                if neighbour not in explored and neighbour not in queue:
-                    queue.append(neighbour)
-        explored.add(node)
-    score = max(len(explored) - 1, 2)
-    #print score
-    return score
-
-def curve_heuristic(graph, i, j):
-    node_1 = (i, j)
-    node_2 = (i + 1, j + 1)
-    length = curve_length(graph, node_1)
-    graph[node_1][node_2]['score'] = graph[node_1][node_2]['score'] + length
-    node_1 = (i + 1, j)
-    node_2 = (i, j + 1)
-    length = curve_length(graph, node_1)
-    graph[node_1][node_2]['score'] = graph[node_1][node_2]['score'] + length
-
-def sparsity_heuristic(graph, i, j):
-    #TODO: consider 8X8 window around diagonal only
-    cc_1 = nx.node_connected_component(graph, (i, j))
-    cc_2 = nx.node_connected_component(graph, (i + 1, j))
-    score = min(abs(len(cc_1) - len(cc_2)), 64)
-    if len(cc_1) < len(cc_2):
-        graph[(i, j)][(i + 1, j + 1)]['score'] = graph[(i, j)][(i + 1, j + 1)]['score'] + score
-    elif len(cc_1) > len(cc_2):
-        graph[(i + 1, j)][(i, j + 1)]['score'] = graph[(i + 1, j)][(i, j + 1)]['score'] + score
-
-def island_heuristic(graph, i, j):
-    score = 5
-    if nx.degree(graph, (i, j)) == 1 or nx.degree(graph, (i + 1, j + 1)) == 1:
-        graph[(i, j)][(i + 1, j + 1)]['score'] = graph[(i, j)][(i + 1, j + 1)]['score'] + score
-    if nx.degree(graph, (i + 1, j)) == 1 or nx.degree(graph, (i, j + 1)) == 1:
-        graph[(i + 1, j)][(i, j + 1)]['score'] = graph[(i + 1, j)][(i, j + 1)]['score'] + score
-
-def print_graph(graph, title):
-    plt.figure()
-    plt.title(title)
-    x = [-node[0] for node in similarity_graph.nodes()]
-    y = [node[1] for node in similarity_graph.nodes()]
-    plt.scatter(y,x)
-    for edge in similarity_graph.edges():
-        plt.plot([edge[0][1],edge[1][1]],[-edge[0][0],-edge[1][0]])
-    plt.show()
-
-def draw_voronoi(graph, width, height, scale):
-    pygame.init()
-
-    # Define some colors
-    BLACK = (0, 0, 0)
-    WHITE = (255, 255, 255)
-    BLUE = (0, 0, 255)
-    GREEN = (0, 255, 0)
-    RED = (255, 0, 0)
-
-    size = (width*scale, height*scale)
-    screen = pygame.display.set_mode(size)
-
-    pygame.display.set_caption("Voronoi Diagram")
-
-    # Loop until the user clicks the close button.
-    done = False
-    clock = pygame.time.Clock()
-
-    while not done:
-
-        for event in pygame.event.get():  # User did something
-            if event.type == pygame.QUIT:  # If user clicked close
-                done = True  # Flag that we are done so we exit this loop
-
-        # All drawing code happens after the for loop and but
-        # inside the main while not done loop.
-
-        # Clear the screen and set the screen background
-        screen.fill(WHITE)
-
-        for i in range(width):
-            for j in range(height):
-                voronoi_cell_vertices = graph.nodes[(i, j)]['voronoi_cell_vertices']
-                vertices = []
-                for vertex in voronoi_cell_vertices:
-                    vertices.append([vertex[0]*scale, vertex[1]*scale])
-                color = graph.nodes[(i, j)]['pixel_value']
-                pygame.draw.polygon(screen, color, vertices)
-
-        # Go ahead and update the screen with what we've drawn.
-        # This MUST happen after all the other drawing commands.
-        pygame.display.flip()
-
-        # This limits the while loop to a max of 60 times per second.
-        # Leave this out and we will use all CPU we can.
-        clock.tick(60)
-
-    # Be IDLE friendly
-    pygame.quit()
 
 # I/O
 filename = 'input_images/smw_boo_input.png'
@@ -118,7 +16,7 @@ similarity_graph = nx.Graph()
 #Add nodes
 for i in range(img.width):
     for j in range(img.height):
-        similarity_graph.add_node((i, j), pixel_value=pixels[j, i])
+        similarity_graph.add_node((i, j), pixel_value=pixels[i, j])
 
 #Add edges
 #TODO check channels, range, other error possibilities
@@ -145,7 +43,7 @@ for i in range(img.width):
                 if (y_diff <= y_threshold) and (u_diff <= u_threshold) and (v_diff <= v_threshold):
                     similarity_graph.add_edge(current_node, neighbour_node)
 
-print_graph(similarity_graph, "before removing")
+#visualizations.draw_graph(similarity_graph, "Before Removing Diagonals")
 
 #Remove diagonals from fully-connected blocks
 for i in range(img.width - 1):
@@ -163,9 +61,9 @@ for i in range(img.width - 1):
             elif (len(edges) == 2):
                 similarity_graph[(i, j)][(i + 1, j + 1)]['score'] = 0
                 similarity_graph[(i + 1, j)][(i, j + 1)]['score'] = 0
-                curve_heuristic(similarity_graph, i, j)
-                sparsity_heuristic(similarity_graph, i, j)
-                island_heuristic(similarity_graph, i, j)
+                heuristics.curve_heuristic(similarity_graph, i, j)
+                heuristics.sparsity_heuristic(similarity_graph, i, j)
+                heuristics.island_heuristic(similarity_graph, i, j)
                 #print similarity_graph[(i, j)][(i + 1, j + 1)]['score']
                 #print similarity_graph[(i + 1, j)][(i, j + 1)]['score']
                 if similarity_graph[(i, j)][(i + 1, j + 1)]['score'] > similarity_graph[(i + 1, j)][(i, j + 1)]['score']:
@@ -175,7 +73,7 @@ for i in range(img.width - 1):
             else:
                 "Error! Block has abnormal number of edges"
 
-print_graph(similarity_graph, "after removing")
+# visualizations.draw_graph(similarity_graph, "After Removing Diagonals")
 
 # voronoi cells
 for x in range(img.width):
@@ -197,20 +95,20 @@ for x in range(img.width):
         else:
             voronoi_cell_vertices.append((voronoi_cell_center_x - 0.5, voronoi_cell_center_y - 0.5))
 
-        # top
-        voronoi_cell_vertices.append((voronoi_cell_center_x, voronoi_cell_center_y - 0.5))
+        # left
+        voronoi_cell_vertices.append((voronoi_cell_center_x - 0.5, voronoi_cell_center_y))
 
-        # top right
-        if similarity_graph.has_edge((x, y), (x + 1, y - 1)):
-            voronoi_cell_vertices.append((voronoi_cell_center_x + 0.25, voronoi_cell_center_y - 0.75))
-            voronoi_cell_vertices.append((voronoi_cell_center_x + 0.75, voronoi_cell_center_y - 0.25))
-        elif similarity_graph.has_edge((x, y - 1), (x + 1, y)):
-            voronoi_cell_vertices.append((voronoi_cell_center_x + 0.25, voronoi_cell_center_y - 0.25))
+        # bottom left
+        if similarity_graph.has_edge((x, y), (x - 1, y + 1)):
+            voronoi_cell_vertices.append((voronoi_cell_center_x - 0.75, voronoi_cell_center_y + 0.25))
+            voronoi_cell_vertices.append((voronoi_cell_center_x - 0.25, voronoi_cell_center_y + 0.75))
+        elif similarity_graph.has_edge((x, y + 1), (x - 1, y)):
+            voronoi_cell_vertices.append((voronoi_cell_center_x - 0.25, voronoi_cell_center_y + 0.25))
         else:
-            voronoi_cell_vertices.append((voronoi_cell_center_x + 0.5, voronoi_cell_center_y - 0.5))
+            voronoi_cell_vertices.append((voronoi_cell_center_x - 0.5, voronoi_cell_center_y + 0.5))
 
-        # right
-        voronoi_cell_vertices.append((voronoi_cell_center_x + 0.5, voronoi_cell_center_y))
+        # bottom
+        voronoi_cell_vertices.append((voronoi_cell_center_x, voronoi_cell_center_y + 0.5))
 
         # bottom right
         if similarity_graph.has_edge((x, y), (x + 1, y + 1)):
@@ -221,26 +119,26 @@ for x in range(img.width):
         else:
             voronoi_cell_vertices.append((voronoi_cell_center_x + 0.5, voronoi_cell_center_y + 0.5))
 
-        # bottom
-        voronoi_cell_vertices.append((voronoi_cell_center_x, voronoi_cell_center_y + 0.5))
+        # right
+        voronoi_cell_vertices.append((voronoi_cell_center_x + 0.5, voronoi_cell_center_y))
 
-        # bottom left
-        if similarity_graph.has_edge((x, y), (x - 1, y + 1)):
-            voronoi_cell_vertices.append((voronoi_cell_center_x - 0.25, voronoi_cell_center_y + 0.75))
-            voronoi_cell_vertices.append((voronoi_cell_center_x - 0.75, voronoi_cell_center_y + 0.25))
-        elif similarity_graph.has_edge((x, y + 1), (x - 1, y)):
-            voronoi_cell_vertices.append((voronoi_cell_center_x - 0.25, voronoi_cell_center_y + 0.25))
+        # top right
+        if similarity_graph.has_edge((x, y), (x + 1, y - 1)):
+            voronoi_cell_vertices.append((voronoi_cell_center_x + 0.75, voronoi_cell_center_y - 0.25))
+            voronoi_cell_vertices.append((voronoi_cell_center_x + 0.25, voronoi_cell_center_y - 0.75))
+        elif similarity_graph.has_edge((x, y - 1), (x + 1, y)):
+            voronoi_cell_vertices.append((voronoi_cell_center_x + 0.25, voronoi_cell_center_y - 0.25))
         else:
-            voronoi_cell_vertices.append((voronoi_cell_center_x - 0.5, voronoi_cell_center_y + 0.5))
+            voronoi_cell_vertices.append((voronoi_cell_center_x + 0.5, voronoi_cell_center_y - 0.5))
 
-        # left
-        voronoi_cell_vertices.append((voronoi_cell_center_x - 0.5, voronoi_cell_center_y))
+        # top
+        voronoi_cell_vertices.append((voronoi_cell_center_x, voronoi_cell_center_y - 0.5))
 
         similarity_graph.nodes[(x, y)]['voronoi_cell_vertices'] = voronoi_cell_vertices
         #print voronoi_cell_vertices
 
-scale = 30
-#draw_voronoi(similarity_graph, img.width, img.height, scale)
+scale = 20
+visualizations.draw_voronoi(similarity_graph, img.width, img.height, scale, "Voronoi Before Removing Valence 2")
 
 # calculate valencies of voronoi cell vertices
 valency = {}
@@ -260,10 +158,8 @@ for i in range(img.width):
         for vertex in voronoi_cell_vertices:
             x = vertex[0]
             y = vertex[1]
-            if valency[vertex] == 1:
-                print "WRONG!"
             if x != 0 and x != img.width and y != 0 and y != img.height:
                 if valency[vertex] == 2:
                     voronoi_cell_vertices.remove(vertex)
 
-#draw_voronoi(similarity_graph, img.width, img.height, scale)
+visualizations.draw_voronoi(similarity_graph, img.width, img.height, scale, "Voronoi After Removing Valence 2")
