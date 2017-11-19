@@ -8,9 +8,15 @@ from keys import *
 import os
 
 # I/O
-filename = 'input_images/smw_boo_input.png'
+input_filename = 'input_images/smw_boo_input.png'
+output_directory = './outputs'
+output_filename = output_directory + '/boo.svg'
+if not os.path.exists(output_directory):
+    os.makedirs(output_directory)
 scale = 10
-img_rgb = Image.open(filename)
+
+# Load Image
+img_rgb = Image.open(input_filename)
 img_yuv = img_rgb.convert('YCbCr')
 pixels_rgb = img_rgb.load()
 pixels_yuv = img_yuv.load()
@@ -238,8 +244,4 @@ for iteration in range(num_iterations):
         similarity_graph.nodes[node][VORONOI_CELL_VERTICES] = Q_R
 
 #visualizations.render_as_pygame_screen(similarity_graph, img_yuv.width, img_yuv.height, scale, "Voronoi After Chaikin")
-output_directory = './outputs'
-if not os.path.exists(output_directory):
-    os.makedirs(output_directory)
-output_filename = output_directory + '/boo.svg'
 visualizations.render_as_svg(similarity_graph, img_yuv.width, img_yuv.height, scale, output_filename)
