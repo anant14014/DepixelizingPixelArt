@@ -5,9 +5,10 @@ import visualizations
 import color_utils
 import itertools
 from keys import *
+import os
 
 # I/O
-filename = 'input_images/smw_dolphin_input.png'
+filename = 'input_images/smw_boo_input.png'
 scale = 10
 img_rgb = Image.open(filename)
 img_yuv = img_rgb.convert('YCbCr')
@@ -136,7 +137,7 @@ for x in range(img_yuv.width):
         similarity_graph.nodes[(x, y)][VORONOI_CELL_VERTICES] = voronoi_cell_vertices
         #print voronoi_cell_vertices
 
-visualizations.render(similarity_graph, img_yuv.width, img_yuv.height, scale, "Voronoi Before Removing Valence 2")
+#visualizations.render_as_pygame_screen(similarity_graph, img_yuv.width, img_yuv.height, scale, "Voronoi Before Removing Valence 2")
 
 # calculate valencies of voronoi cell vertices
 valency = {}
@@ -160,10 +161,12 @@ for i in range(img_yuv.width):
                 if valency[vertex] == 2:
                     voronoi_cell_vertices.remove(vertex)
 
-visualizations.render(similarity_graph, img_yuv.width, img_yuv.height, scale, "Voronoi After Removing Valence 2")
+#visualizations.render_as_pygame_screen(similarity_graph, img_yuv.width, img_yuv.height, scale, "Voronoi After Removing Valence 2")
 
 
-num_iterations = 1
+num_iterations = 4
+num_different_colors_threshold = 3
+diagonal_length_threshold = 0.8
 for iteration in range(num_iterations):
     # build voronoi graph
     voronoi_graph = nx.Graph()
@@ -194,7 +197,7 @@ for iteration in range(num_iterations):
         for pair in adjacent_cell_color_pairs:
             if color_utils.is_different(pair[0], pair[1]):
                 num_different_colors = num_different_colors + 1
-        if num_different_colors > 1:
+        if num_different_colors > num_different_colors_threshold:
             voronoi_graph.nodes[node][IS_JUNCTION] = True
         else:
             voronoi_graph.nodes[node][IS_JUNCTION] = False
@@ -219,8 +222,8 @@ for iteration in range(num_iterations):
             if shouldSmooth:
                 factor_1 = 0.75
                 factor_2 = 1.0 - factor_1
-                distance = visualizations.distance(p_l, p_r)
-                if distance > 0.8:
+                diagonal_length = visualizations.distance(p_l, p_r)
+                if diagonal_length > diagonal_length_threshold:
                     factor_1 = (1.0/8.0)
                     factor_2 = 1.0 - factor_1
                 q_i = (factor_1*p_l[0] + factor_2*p_r[0], factor_1*p_l[1] + factor_2*p_r[1])
@@ -234,4 +237,9 @@ for iteration in range(num_iterations):
                     Q_R.append(p_r)
         similarity_graph.nodes[node][VORONOI_CELL_VERTICES] = Q_R
 
-visualizations.render(similarity_graph, img_yuv.width, img_yuv.height, scale, "Voronoi After Chaikin")
+#visualizations.render_as_pygame_screen(similarity_graph, img_yuv.width, img_yuv.height, scale, "Voronoi After Chaikin")
+output_directory = './outputs'
+if not os.path.exists(output_directory):
+    os.makedirs(output_directory)
+output_filename = output_directory + '/boo.svg'
+visualizations.render_as_svg(similarity_graph, img_yuv.width, img_yuv.height, scale, output_filename)
