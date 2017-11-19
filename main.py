@@ -2,10 +2,11 @@ import networkx as nx
 from PIL import Image
 import heuristics
 import visualizations
+import color
 
 
 # I/O
-filename = 'input_images/smw_boo_input.png'
+filename = 'input_images/smw_dolphin_input.png'
 img = Image.open(filename)
 img = img.convert('YCbCr')
 pixels = img.load()
@@ -13,16 +14,14 @@ pixels = img.load()
 #Create graph
 similarity_graph = nx.Graph()
 
+#TODO: check channels, range, other error possibilities (for the below 2 steps)
+
 #Add nodes
 for i in range(img.width):
     for j in range(img.height):
         similarity_graph.add_node((i, j), pixel_value=pixels[i, j])
 
 #Add edges
-#TODO check channels, range, other error possibilities
-y_threshold = 48
-u_threshold = 7
-v_threshold = 6
 for i in range(img.width):
     for j in range(img.height):
         current_node = (i, j)
@@ -37,10 +36,9 @@ for i in range(img.width):
         nodes_to_connect.append((i - 1, j - 1))
         for neighbour_node in nodes_to_connect:
             if (similarity_graph.has_node(neighbour_node)):
-                y_diff = abs(similarity_graph.nodes[current_node]['pixel_value'][0] - similarity_graph.nodes[neighbour_node]['pixel_value'][0])
-                u_diff = abs(similarity_graph.nodes[current_node]['pixel_value'][1] - similarity_graph.nodes[neighbour_node]['pixel_value'][1])
-                v_diff = abs(similarity_graph.nodes[current_node]['pixel_value'][2] - similarity_graph.nodes[neighbour_node]['pixel_value'][2])
-                if (y_diff <= y_threshold) and (u_diff <= u_threshold) and (v_diff <= v_threshold):
+                color_current = similarity_graph.nodes[current_node]['pixel_value']
+                color_neighbour = similarity_graph.nodes[neighbour_node]['pixel_value']
+                if not color.is_different(color_current, color_neighbour):
                     similarity_graph.add_edge(current_node, neighbour_node)
 
 #visualizations.draw_graph(similarity_graph, "Before Removing Diagonals")
@@ -163,3 +161,51 @@ for i in range(img.width):
                     voronoi_cell_vertices.remove(vertex)
 
 visualizations.draw_voronoi(similarity_graph, img.width, img.height, scale, "Voronoi After Removing Valence 2")
+
+
+
+
+# build voronoi graph
+voronoi_graph = nx.Graph()
+for i in range(img.width):
+    for j in range(img.height):
+        voronoi_cell_vertices = similarity_graph.nodes[(i, j)]['voronoi_cell_vertices']
+        for l in range(len(voronoi_cell_vertices)):
+            r = (l + 1)%len(voronoi_cell_vertices)
+            v1 = voronoi_cell_vertices[l]
+            v2 = voronoi_cell_vertices[r]
+            if voronoi_graph.has_edge(v1, v2):
+                voronoi_graph.edges[(v1, v2)]['belongs_to'].append((i, j))
+            else:
+                voronoi_graph.add_edge(v1, v2)
+                voronoi_graph.edges[(v1, v2)]['belongs_to'] = [(i, j)]
+
+
+# chaikin's method (equivalent to b-splines)
+for node in similarity_graph.nodes:
+    P = similarity_graph.nodes[node]['voronoi_cell_vertices']
+    Q_R = []
+    i = 0
+    for i in range(len(P)):
+        p_l = P[i]
+        p_r = P[(i + 1)%len(P)]
+        shouldSmooth = False
+        cell_centers = voronoi_graph.edges[(p_l, p_r)]['belongs_to']
+        if (len(cell_centers) == 2):
+            color_1 = similarity_graph.nodes[cell_centers[0]]['pixel_value']
+            color_2 = similarity_graph.nodes[cell_centers[1]]['pixel_value']
+            if color.is_different(color_1, color_2):
+                shouldSmooth = True
+        if shouldSmooth:
+            q_i = (0.75 * p_l[0] + 0.25 * p_r[0], 0.75 * p_l[1] + 0.25 * p_r[1])
+            r_i = (0.25 * p_l[0] + 0.75 * p_r[0], 0.25 * p_l[1] + 0.75 * p_r[1])
+            Q_R.append(q_i)
+            Q_R.append(r_i)
+        else:
+            if p_l not in Q_R:
+                Q_R.append(p_l)
+            if p_r not in Q_R:
+                Q_R.append(p_r)
+    similarity_graph.nodes[node]['voronoi_cell_vertices'] = Q_R
+
+visualizations.draw_voronoi(similarity_graph, img.width, img.height, scale, "Voronoi After Chaikin")
